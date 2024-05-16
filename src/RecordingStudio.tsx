@@ -107,7 +107,7 @@ export default function RecordingStudio(props: {
         ctx.fillStyle = "rgba(0, 0, 0, .3)";
         ctx.fillRect(currentFrame/(rec.frames.length - 1) * width - frameWidth/2, 0, width/(rec.frames.length), height);
 
-        if (mousePos) {
+        if (mousePos && pEditing) {
             ctx.globalAlpha = .5;
             ctx.fillStyle = fProps[pEditing!].color;
             const [x, y] = mousePos;
