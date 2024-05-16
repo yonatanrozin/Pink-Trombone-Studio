@@ -34,9 +34,9 @@ export default function RecordingStudio(props: {
     const {recording, set, voice} = props;
 
     const [mouseStart, setMouseStart] = useState<{x: number, y: number, val: number}>();
+    const [mousePos, setMousePos] = useState<[number, number]>();
     const [pEditing, setPEditing] = useState<string>();
     const [currentFrame, setCurrentFrame] = useState<number>(0);
-
     const [frameObj, setFrameObj] = useState<Recording_Frame>();
     
     const cnvRef = useRef<HTMLCanvasElement>(null);
@@ -64,7 +64,7 @@ export default function RecordingStudio(props: {
         if (recording) setCurrentFrame(Math.min(Math.max(0, currentFrame), recording.frames.length - 1));
         setFrameObj(recording?.frames[currentFrame]);
         if (cnvRef.current && recording) draw(recording, cnvRef.current);
-    }, [recording, cnvRef.current, pEditing, currentFrame, JSON.stringify(frameObj)]);
+    }, [recording, cnvRef.current, pEditing, currentFrame, JSON.stringify(frameObj), mousePos]);
 
     function draw(rec: Recording, cnv: HTMLCanvasElement) {
 
@@ -106,6 +106,14 @@ export default function RecordingStudio(props: {
         const frameWidth = width / rec.frames.length;
         ctx.fillStyle = "rgba(0, 0, 0, .3)";
         ctx.fillRect(currentFrame/(rec.frames.length - 1) * width - frameWidth/2, 0, width/(rec.frames.length), height);
+
+        if (mousePos) {
+            ctx.globalAlpha = .5;
+            ctx.fillStyle = fProps[pEditing!].color;
+            const [x, y] = mousePos;
+            ctx.fillText(String(map(y, 1, 0, fProps[pEditing!].min, fProps[pEditing!].max).toFixed(3)), x * cnv.width, y * cnv.height);
+            ctx.globalAlpha = 1;
+        }
     }
 
     function cnvMouseDown(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
@@ -130,13 +138,15 @@ export default function RecordingStudio(props: {
 
     function cnvMouseMove(e: React.MouseEvent<HTMLCanvasElement, MouseEvent>) {
         e.preventDefault();
+
+        let x = e.nativeEvent.offsetX/cnvRef.current!.clientWidth;
+        let y = e.nativeEvent.offsetY/cnvRef.current!.clientHeight;
+        setMousePos([x, y]);
+
         if (!e.buttons || !mouseStart || !pEditing || !recording) return;
 
         const p = pEditing as keyof Recording_Frame;
 
-        let x = e.nativeEvent.offsetX/cnvRef.current!.clientWidth;
-        let y = e.nativeEvent.offsetY/cnvRef.current!.clientHeight;
-        
         if (y < 0.03) y = 0; else if (y > .97) y = 1;
         if (x < 0.03) x = 0; else if (x > .97) x = 1;
 
@@ -152,6 +162,7 @@ export default function RecordingStudio(props: {
                 recording.frames[i][p] = Number(map(i, i1, i2, mouseStart.val, val).toFixed(3));
             }
         }
+
 
         set({...recording});
 
