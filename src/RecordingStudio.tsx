@@ -168,7 +168,23 @@ export default function RecordingStudio(props: {
         set({...rec});
     }
 
-    useEffect(() => {if (frameObj) voice?.sonifyFrame(frameObj, recording?.adj)}, [JSON.stringify(frameObj)]);
+    useEffect(() => {
+        if (frameObj && voice) {
+            const n = voice.tract.parameters.get("n")!.value;
+            const adj = recording?.adj;
+            voice.tract.parameters.get("constriction-index")!.value = frameObj.ci/44 * n || 0;
+            voice.tract.parameters.get("constriction-diameter")!.value = frameObj.cd || 0;
+            voice.glottis.parameters.get("intensity")!.value = frameObj.i;
+            voice.glottis.parameters.get("tenseness-mult")!.value = frameObj.t;
+            voice.tract.parameters.get("velum-target")!.value = frameObj.v;
+            voice.tract.parameters.get("fricative-strength")!.value = frameObj.n;
+
+            voice.tract.parameters.get("tongue-index")!.value = 
+                adj && frameObj.ta ? map(frameObj.ta, 0, 1, voice.tongue.i, adj.i/44 * n) : voice.tongue.i;
+                voice.tract.parameters.get("tongue-diameter")!.value = 
+                adj && frameObj.ta ? map(frameObj.ta, 0, 1, voice.tongue.d, adj.d/44 * n) : voice.tongue.d;
+        }
+    }, [JSON.stringify(frameObj)]);
 
     function download(content: {}) {
         const recName = window.prompt("Enter recording name:");
