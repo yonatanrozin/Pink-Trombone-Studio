@@ -35,6 +35,7 @@ export default function RecordingStudio(props: {
 
     const [mouseStart, setMouseStart] = useState<{x: number, y: number, val: number}>();
     const [mousePos, setMousePos] = useState<[number, number]>();
+    const [shiftHeld, setShiftHeld] = useState(false);
     const [pEditing, setPEditing] = useState<string>();
     const [currentFrame, setCurrentFrame] = useState<number>(0);
     const [frameObj, setFrameObj] = useState<Recording_Frame>();
@@ -49,7 +50,11 @@ export default function RecordingStudio(props: {
 
     useEffect(() => {
         window.addEventListener("keydown", handleKeyPress);
-        return () => window.removeEventListener("keydown", handleKeyPress);
+        window.addEventListener("keyup", handleKeyRelease);
+        return () => {
+            window.removeEventListener("keydown", handleKeyPress);
+            window.removeEventListener("keyup", handleKeyRelease);
+        }
     }, [recording]);
 
     const handleKeyPress = useCallback((e: KeyboardEvent) => {
@@ -57,8 +62,17 @@ export default function RecordingStudio(props: {
             e.preventDefault();
             if (!recording) return;
             setCurrentFrame((f) => {return e.key === "ArrowLeft" ? f - 1 : f + 1});
+        } else if (e.key === "Shift") {
+            e.preventDefault();
+            setShiftHeld(true);
         }
-    }, [recording, currentFrame]);
+    }, [recording, frameObj]);
+
+    const handleKeyRelease = useCallback((e: KeyboardEvent) => {
+        if (e.key === "Shift") {
+            setShiftHeld(false);
+        }
+    }, [recording, frameObj]);
     
     useEffect(() => {
         if (recording) setCurrentFrame(Math.min(Math.max(0, currentFrame), recording.frames.length - 1));
@@ -142,8 +156,11 @@ export default function RecordingStudio(props: {
         let x = e.nativeEvent.offsetX/cnvRef.current!.clientWidth;
         let y = e.nativeEvent.offsetY/cnvRef.current!.clientHeight;
         setMousePos([x, y]);
-
+        
+        
         if (!e.buttons || !mouseStart || !pEditing || !recording) return;
+
+        if (shiftHeld && Math.abs(y - mouseStart.y) < .03) y = mouseStart.y;
 
         const p = pEditing as keyof Recording_Frame;
 
@@ -163,10 +180,10 @@ export default function RecordingStudio(props: {
             }
         }
 
-
         set({...recording});
 
-        setMouseStart({x, y, val});
+        if (!shiftHeld) setMouseStart({x, y, val});
+        
     }
 
     function extendFrame(rec: Recording) {
