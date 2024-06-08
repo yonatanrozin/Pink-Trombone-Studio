@@ -1,0 +1,8 @@
+#studio {
+    display: flex;
+
+    > div {
+        flex: 1;
+        outline: 1px solid black;
+    }
+}
